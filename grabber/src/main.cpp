@@ -1,4 +1,5 @@
 #include <Arduino.h>
+#include "servo_control.h"
 
 // Pins
 static const uint8_t UR5_IN_PIN  = 2;   // input from UR5
@@ -38,6 +39,9 @@ static void servicePulse()
 // Edge detection
 static bool lastInState = false;
 
+bool closeGripper = false;
+bool gripperClosed = false;
+
 void setup()
 {
   pinMode(LED_BUILTIN, OUTPUT);
@@ -50,6 +54,9 @@ void setup()
 
   lastInState = digitalRead(UR5_IN_PIN);
   digitalWrite(LED_BUILTIN, lastInState ? HIGH : LOW); // optional: reflect state at boot
+
+  // Initialize servo and pressure sensor
+  initializeServo();
 }
 
 void loop()
@@ -66,6 +73,14 @@ void loop()
       // Rising edge: LED ON (called once per rising edge)
       digitalWrite(LED_BUILTIN, HIGH);
 
+      closeGripper = !closeGripper; // Toggle gripper state on each rising edge
+      Serial.print(closeGripper);
+      while (!servoControl(closeGripper)) { // Wait until the servo control indicates the gripper has reached the desired state delay(10); // Small delay to prevent busy-waiting }
+        Serial.print("Gripper "); Serial.println(closeGripper ? "Closing" : "Opening"); 
+      }
+
+      Serial.print("Gripper state:"); Serial.println(closeGripper ? "Closed" : "Open"); 
+
       // Send positive pulse once
       requestPositivePulseOnce();
     }
@@ -73,7 +88,10 @@ void loop()
     {
       // Falling edge: LED OFF (called once per falling edge)
       digitalWrite(LED_BUILTIN, LOW);
-
+      if (gripperClosed) {
+        closeGripper = false;
+        gripperClosed = servoControl(closeGripper);
+      }
       // Send positive pulse once
       requestPositivePulseOnce();
     }
@@ -82,3 +100,5 @@ void loop()
   }
 
 }
+
+
