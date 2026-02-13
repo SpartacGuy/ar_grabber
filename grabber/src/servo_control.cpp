@@ -6,14 +6,18 @@
 Servo myservo;  // create Servo object to control a servo
 // twelve Servo objects can be created on most boards
 
+const int PRESSURE_THRESHOLD = 50; 
+
 int pos = 0;    // variable to store the servo position
 int oldPressure = 0;
 int pressure = 0;  
 int currentPressure = 0;
 int lastDebounceTime = 0;
+int errorTimer = 0;
 
 bool gripped = false;
 bool ungripped = false;
+bool errorDetected = false;
 
 void initializeServo() {
   Serial.begin(9600);
@@ -34,17 +38,23 @@ bool servoControl(bool closeGripper) {
 
   
   if (millis() - lastDebounceTime >= 10) {
-
-    if (currentPressure >= pressure + 100 /* && currentPressure < 100 */) {
+    Serial.print(currentPressure);
+    if (currentPressure >= pressure + PRESSURE_THRESHOLD /* && currentPressure < 100 */) {
       Serial.print("Object Gripped. Pressure Value: ");
       Serial.println(currentPressure);
 
       pressure = currentPressure;
-
+    
       gripped = true;
       ungripped = false;
+
+      if (millis() - errorTimer < 2000) { 
+        Serial.println("Error: Object may be slipping or not fully gripped.");
+        errorTimer = millis(); // reset error timer
+        errorDetected = true;
+      }
       //oldPressure = mappedPressure;
-    } else if (currentPressure <= pressure - 100 && pressure > 1) {
+    } else if (currentPressure <= pressure - PRESSURE_THRESHOLD && pressure > 1) {
       Serial.print("Object Ungripped. Pressure Value: ");
       Serial.println(currentPressure);
 
@@ -59,10 +69,10 @@ bool servoControl(bool closeGripper) {
     oldPressure = mappedPressure;
   }
 
-  Serial.println("Hello");
   // pressure = currentPressure;
 
   if (closeGripper) {
+    
         if (!gripped /* && pos <= 120 */) {
             pos = 120;
             myservo.write(pos);
@@ -83,12 +93,12 @@ bool servoControl(bool closeGripper) {
             // // pos--;
         }
     } else { 
-        if (ungripped) {
-            pos = 0;
-            myservo.write(pos);
-            delay(5000); // delay five seconds to simulate transporting the object
-            return true;
-        }
+        pos = 60;
+        myservo.write(pos);
+        delay(2000); // delay five seconds to simulate transporting the object
+        pos = 90;
+        myservo.write(pos);
+        return true;
     }
 
     return false;

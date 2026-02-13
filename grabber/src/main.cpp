@@ -5,7 +5,7 @@
 static const uint8_t UR5_IN_PIN  = 2;   // input from UR5
 static const uint8_t UR5_OUT_PIN = 3;   // output to UR5/relay input
 
-static const uint16_t PULSE_MS = 50;
+static const uint16_t PULSE_MS = 100;
 
 // Pulse state machine
 enum class PulseState : uint8_t { Idle, High };
