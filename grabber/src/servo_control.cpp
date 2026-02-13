@@ -13,7 +13,7 @@ int oldPressure = 0;
 int pressure = 0;  
 int currentPressure = 0;
 int lastDebounceTime = 0;
-int errorTimer = 0;
+//int errorTimer = 0;
 
 bool gripped = false;
 bool ungripped = false;
@@ -26,6 +26,9 @@ void initializeServo() {
 }
 
 bool servoControl(bool closeGripper) {
+
+  static int errorTimer = millis(); // Timer to track time since last grip/ungrip event
+  static int closingTime = 0;
 
   int unmappedPressure = analogRead(PressurePin);
   int mappedPressure = map(unmappedPressure, 0, 1023, 0, 255);
@@ -47,12 +50,15 @@ bool servoControl(bool closeGripper) {
     
       gripped = true;
       ungripped = false;
-
-      if (millis() - errorTimer < 2000) { 
+      
+      closingTime = millis() - errorTimer;
+      if (closingTime > 2000) { 
         Serial.println("Error: Object may be slipping or not fully gripped.");
-        errorTimer = millis(); // reset error timer
         errorDetected = true;
+      } else {
+        errorDetected = false;
       }
+
       //oldPressure = mappedPressure;
     } else if (currentPressure <= pressure - PRESSURE_THRESHOLD && pressure > 1) {
       Serial.print("Object Ungripped. Pressure Value: ");
@@ -71,7 +77,7 @@ bool servoControl(bool closeGripper) {
 
   // pressure = currentPressure;
 
-  if (closeGripper) {
+  if (closeGripper && !errorDetected) {
     
         if (!gripped /* && pos <= 120 */) {
             pos = 120;
@@ -82,7 +88,9 @@ bool servoControl(bool closeGripper) {
             pos = 90;
             myservo.write(pos);
             delay(15);
+            errorTimer = millis(); // Reset error timer on successful grip
             return true;
+          
             // delay(5000); // delay five seconds to simulate transporting the object
             // pos = 0; // open the gripper to the open position after transporting the object
             // myservo.write(pos);
@@ -92,13 +100,17 @@ bool servoControl(bool closeGripper) {
             // // gripped = false;
             // // pos--;
         }
-    } else { 
+    } else if (!closeGripper || errorDetected) { 
         pos = 60;
         myservo.write(pos);
-        delay(2000); // delay five seconds to simulate transporting the object
+        delay(closingTime); // delay five seconds to simulate transporting the object
         pos = 90;
         myservo.write(pos);
-        return true;
+        errorTimer = millis();
+        if (!closeGripper) {
+          return true;
+        }
+        errorDetected = false; // Reset error state after attempting to ungrip
     }
 
     return false;
