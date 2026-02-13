@@ -103,14 +103,20 @@ bool servoControl(bool closeGripper) {
     } else if (!closeGripper || errorDetected) { 
         pos = 60;
         myservo.write(pos);
-        delay(closingTime); // delay five seconds to simulate transporting the object
-        pos = 90;
-        myservo.write(pos);
-        errorTimer = millis();
         if (!closeGripper) {
+            delay(closingTime); // delay five seconds to simulate transporting the object
+            pos = 90;
+            myservo.write(pos);
+            errorTimer = millis();
           return true;
+        } else {
+            delay(2000);
+            pos = 90;
+            myservo.write(pos);
+            errorTimer = millis();
+            errorDetected = false; // Reset error state after attempting to ungrip
         }
-        errorDetected = false; // Reset error state after attempting to ungrip
+        
     }
 
     return false;
