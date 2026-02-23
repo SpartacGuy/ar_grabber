@@ -12,7 +12,11 @@
             "type": "platformio-debug",
             "request": "launch",
             "name": "PIO Debug",
+<<<<<<< HEAD
             "executable": "C:/Users/edwin/Desktop/Code/Adaptive Robotics/ar_grabber/grabber/.pio/build/pico/firmware.elf",
+=======
+            "executable": "/Users/sandu/ar_grabber/grabber/.pio/build/pico/firmware.elf",
+>>>>>>> 914a4542bba6c500c71ad2ec3aacfd4af4bbc504
             "projectEnvName": "pico",
             "toolchainBinDir": "C:/Users/edwin/.platformio/packages/toolchain-gccarmnoneeabi/bin",
             "internalConsoleOptions": "openOnSessionStart",
@@ -26,7 +30,11 @@
             "type": "platformio-debug",
             "request": "launch",
             "name": "PIO Debug (skip Pre-Debug)",
+<<<<<<< HEAD
             "executable": "C:/Users/edwin/Desktop/Code/Adaptive Robotics/ar_grabber/grabber/.pio/build/pico/firmware.elf",
+=======
+            "executable": "/Users/sandu/ar_grabber/grabber/.pio/build/pico/firmware.elf",
+>>>>>>> 914a4542bba6c500c71ad2ec3aacfd4af4bbc504
             "projectEnvName": "pico",
             "toolchainBinDir": "C:/Users/edwin/.platformio/packages/toolchain-gccarmnoneeabi/bin",
             "internalConsoleOptions": "openOnSessionStart",
@@ -36,7 +44,11 @@
             "type": "platformio-debug",
             "request": "launch",
             "name": "PIO Debug (without uploading)",
+<<<<<<< HEAD
             "executable": "C:/Users/edwin/Desktop/Code/Adaptive Robotics/ar_grabber/grabber/.pio/build/pico/firmware.elf",
+=======
+            "executable": "/Users/sandu/ar_grabber/grabber/.pio/build/pico/firmware.elf",
+>>>>>>> 914a4542bba6c500c71ad2ec3aacfd4af4bbc504
             "projectEnvName": "pico",
             "toolchainBinDir": "C:/Users/edwin/.platformio/packages/toolchain-gccarmnoneeabi/bin",
             "internalConsoleOptions": "openOnSessionStart",
