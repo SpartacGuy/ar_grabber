@@ -52,7 +52,7 @@ bool servoControl(bool closeGripper) {
       ungripped = false;
       
       closingTime = millis() - errorTimer;
-      if (closingTime > 2000) { 
+      if (closingTime > 5000) { 
         Serial.println("Error: Object may be slipping or not fully gripped.");
         errorDetected = true;
       } else {
@@ -80,7 +80,7 @@ bool servoControl(bool closeGripper) {
   if (closeGripper && !errorDetected) {
     
         if (!gripped /* && pos <= 120 */) {
-            pos = 120;
+            pos = 0;
             myservo.write(pos);
             delay(15);
             // pos++;
@@ -101,7 +101,7 @@ bool servoControl(bool closeGripper) {
             // // pos--;
         }
     } else if (!closeGripper || errorDetected) { 
-        pos = 60;
+        pos = 180;
         myservo.write(pos);
         if (!closeGripper) {
             delay(closingTime); // delay five seconds to simulate transporting the object

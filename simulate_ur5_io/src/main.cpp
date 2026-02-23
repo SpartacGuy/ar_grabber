@@ -7,6 +7,8 @@ const int PIN_INPUT  = 3;
 
 // Timing Constants
 const unsigned long INTERVAL_MS = 2000; 
+int debounceTime = 0;
+bool buttonState = false;
 
 // State Machine States
 enum SystemState {
@@ -46,7 +48,16 @@ void loop() {
     
     // 1. Waiting for Button Press
     case STATE_IDLE:
-      if (digitalRead(PIN_BUTTON) == HIGH) {
+    // Debounce button  
+    bool buttonPressed = (digitalRead(PIN_BUTTON) == HIGH);
+ 
+    if (millis() - debounceTime > 50) {
+      if (buttonPressed != buttonState) {
+        buttonState = buttonPressed;
+      }
+      debounceTime = millis(); // Reset debounce time
+    }
+      if (buttonState == HIGH) {
         Serial.println("Button Pressed. Starting Sequence.");
         stateStartTime = currentMillis; 
         currentState = STATE_WAIT_1;
