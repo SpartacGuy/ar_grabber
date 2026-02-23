@@ -73,7 +73,7 @@ void loop()
       // Rising edge: LED ON (called once per rising edge)
       digitalWrite(LED_BUILTIN, HIGH);
 
-      closeGripper = !closeGripper; // Toggle gripper state on each rising edge
+      closeGripper = true; 
       Serial.print(closeGripper);
       while (!servoControl(closeGripper)) { // Wait until the servo control indicates the gripper has reached the desired state delay(10); // Small delay to prevent busy-waiting }
         Serial.print("Gripper "); Serial.println(closeGripper ? "Closing" : "Opening"); 
