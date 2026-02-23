@@ -27,7 +27,7 @@ void setup() {
   Serial.println("System Initialized");
 
   // Input Setup
-  pinMode(PIN_BUTTON, INPUT_PULLUP); 
+  pinMode(PIN_BUTTON, INPUT); 
   pinMode(PIN_INPUT, INPUT); 
 
   // Output Setup
