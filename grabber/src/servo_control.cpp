@@ -19,16 +19,18 @@ bool gripped = false;
 bool ungripped = false;
 bool errorDetected = false;
 
+
 void initializeServo() {
   Serial.begin(9600);
   myservo.attach(22);  // attaches the servo on pin 29 to the Servo object
   pinMode(PressurePin, INPUT);
 }
 
-bool servoControl(bool closeGripper) {
+bool servoControl(bool closeGripper, int errorTimer) {
 
-  static int errorTimer = millis(); // Timer to track time since last grip/ungrip event
+  // static int errorTimer = millis(); // Timer to track time since last grip/ungrip event
   static int closingTime = 0;
+  errorTimer = errorDetected ? millis() : errorTimer; 
 
   int unmappedPressure = analogRead(PressurePin);
   int mappedPressure = map(unmappedPressure, 0, 1023, 0, 255);
@@ -52,6 +54,8 @@ bool servoControl(bool closeGripper) {
       ungripped = false;
       
       closingTime = millis() - errorTimer;
+      Serial.print("Closing Time: ");
+      Serial.println(closingTime);
       if (closingTime > 5000) { 
         Serial.println("Error: Object may be slipping or not fully gripped.");
         errorDetected = true;
@@ -77,47 +81,91 @@ bool servoControl(bool closeGripper) {
 
   // pressure = currentPressure;
 
-  if (closeGripper && !errorDetected) {
-    
-        if (!gripped /* && pos <= 120 */) {
-            pos = 0;
-            myservo.write(pos);
-            delay(15);
-            // pos++;
-        } else if (gripped /*&& pos >= 0 */) {
-            pos = 90;
-            myservo.write(pos);
-            delay(15);
-            errorTimer = millis(); // Reset error timer on successful grip
-            return true;
-          
-            // delay(5000); // delay five seconds to simulate transporting the object
-            // pos = 0; // open the gripper to the open position after transporting the object
-            // myservo.write(pos);
-            // delay(2000);
-            // pos = 90;
-            // myservo.write(pos);
-            // // gripped = false;
-            // // pos--;
-        }
-    } else if (!closeGripper || errorDetected) { 
+  // State machine   
+
+  switch (closeGripper) { 
+    case true: 
+      if (!gripped /* && pos <= 120 */) {
         pos = 180;
         myservo.write(pos);
-        if (!closeGripper) {
-            delay(closingTime); // delay five seconds to simulate transporting the object
-            pos = 90;
-            myservo.write(pos);
-            errorTimer = millis();
-          return true;
+        delay(15);
+        // pos++;
+      } else if (gripped /*&& pos >= 0 */) {
+        pos = 90;
+        myservo.write(pos);
+        delay(15);
+        if (errorDetected) {
+          Serial.println("Error detected during gripping. Attempting to re-grip...");
+          gripped = false; // Reset grip state to allow re-gripping
+          pos = 0; // Open the gripper to attempt a new grip
+          myservo.write(pos);
+          delay(2000); // Wait before attempting to grip again
+          pos = 90; // Attempt to grip again
+          myservo.write(pos);
+          errorTimer = millis(); // Reset error timer for the new grip attempt
+          return false; // Indicate that the desired state has not been reached yet
         } else {
-            delay(2000);
-            pos = 90;
-            myservo.write(pos);
-            errorTimer = millis();
-            errorDetected = false; // Reset error state after attempting to ungrip
+          return true;
         }
+      }
+      break;
+    case false:
+      pos = 0;
+      myservo.write(pos);
+      if (!closeGripper) {
+        delay(closingTime); // delay five seconds to simulate transporting the object
+        pos = 90;
+        myservo.write(pos);
+        return true;
+      } else {
+        delay(2000);
+        pos = 90;
+        myservo.write(pos);
+        errorDetected = false; // Reset error state after attempting to ungrip
+      }
+  } 
+
+  // if (closeGripper && !errorDetected) {
+    
+  //       if (!gripped /* && pos <= 120 */) {
+  //           pos = 180;
+  //           myservo.write(pos);
+  //           delay(15);
+  //           // pos++;
+  //       } else if (gripped /*&& pos >= 0 */) {
+  //           pos = 90;
+  //           myservo.write(pos);
+  //           delay(15);
+  //           errorTimer = millis(); // Reset error timer on successful grip
+  //           return true;
+          
+  //           // delay(5000); // delay five seconds to simulate transporting the object
+  //           // pos = 0; // open the gripper to the open position after transporting the object
+  //           // myservo.write(pos);
+  //           // delay(2000);
+  //           // pos = 90;
+  //           // myservo.write(pos);
+  //           // // gripped = false;
+  //           // // pos--;
+  //       }
+  //   } else if (!closeGripper || errorDetected) { 
+  //       pos = 0;
+  //       myservo.write(pos);
+  //       if (!closeGripper) {
+  //           delay(closingTime); // delay five seconds to simulate transporting the object
+  //           pos = 90;
+  //           myservo.write(pos);
+  //           errorTimer = millis();
+  //         return true;
+  //       } else {
+  //           delay(2000);
+  //           pos = 90;
+  //           myservo.write(pos);
+  //           errorTimer = millis();
+  //           errorDetected = false; // Reset error state after attempting to ungrip
+  //       }
         
-    }
+  //   }
 
     return false;
   // Serial.print("Gripper Pos: ");

@@ -1,2 +1,2 @@
 void initializeServo();
-bool servoControl(bool closeGripper);
+bool servoControl(bool closeGripper, int errorTimer);

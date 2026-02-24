@@ -64,6 +64,7 @@ void loop()
   servicePulse();
 
   bool inState = digitalRead(UR5_IN_PIN);
+  int errorTimer = millis(); // Timer to track time since last grip/ungrip event
 
   // React only on edges
   if (inState != lastInState)
@@ -75,11 +76,12 @@ void loop()
 
       closeGripper = true; 
       Serial.print(closeGripper);
-      while (!servoControl(closeGripper)) { // Wait until the servo control indicates the gripper has reached the desired state delay(10); // Small delay to prevent busy-waiting }
+      while (!servoControl(closeGripper, errorTimer)) { // Wait until the servo control indicates the gripper has reached the desired state delay(10); // Small delay to prevent busy-waiting }
         Serial.print("Gripper "); Serial.println(closeGripper ? "Closing" : "Opening"); 
       }
 
       Serial.print("Gripper state:"); Serial.println(closeGripper ? "Closed" : "Open"); 
+      gripperClosed = closeGripper;
 
       // Send positive pulse once
       requestPositivePulseOnce();
@@ -90,7 +92,7 @@ void loop()
       digitalWrite(LED_BUILTIN, LOW);
       if (gripperClosed) {
         closeGripper = false;
-        gripperClosed = servoControl(closeGripper);
+        gripperClosed = servoControl(closeGripper, errorTimer);
       }
       // Send positive pulse once
       requestPositivePulseOnce();
