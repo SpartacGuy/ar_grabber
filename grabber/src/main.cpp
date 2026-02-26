@@ -4,6 +4,7 @@
 // Pins
 static const uint8_t UR5_IN_PIN  = 2;   // input from UR5
 static const uint8_t UR5_OUT_PIN = 3;   // output to UR5/relay input
+static const uint8_t ERROR_PIN = 6;   // output to UR5/relay input
 
 static const uint16_t PULSE_MS = 100;
 
@@ -52,6 +53,9 @@ void setup()
   pinMode(UR5_OUT_PIN, OUTPUT);
   digitalWrite(UR5_OUT_PIN, LOW);
 
+  pinMode(ERROR_PIN, OUTPUT);
+  digitalWrite(ERROR_PIN, LOW);
+
   lastInState = digitalRead(UR5_IN_PIN);
   digitalWrite(LED_BUILTIN, lastInState ? HIGH : LOW); // optional: reflect state at boot
 
@@ -69,6 +73,7 @@ void loop()
   // React only on edges
   if (inState != lastInState)
   {
+    digitalWrite(ERROR_PIN, LOW); // Clear error on any state change
     if (inState)
     {
       // Rising edge: LED ON (called once per rising edge)
@@ -80,8 +85,15 @@ void loop()
         Serial.print("Gripper "); Serial.println(closeGripper ? "Closing" : "Opening"); 
       }
 
-      Serial.print("Gripper state:"); Serial.println(closeGripper ? "Closed" : "Open"); 
-      gripperClosed = closeGripper;
+      Serial.print("Gripper state:"); Serial.println(closeGripper ? "Closed" : "Open");
+      
+      if (!ErrorDetected()) {
+        digitalWrite(ERROR_PIN, LOW);
+        gripperClosed = closeGripper;
+      } else {
+        digitalWrite(ERROR_PIN, HIGH);
+      }
+      
 
       // Send positive pulse once
       requestPositivePulseOnce();

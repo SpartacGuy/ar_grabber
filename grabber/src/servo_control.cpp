@@ -103,10 +103,12 @@ bool servoControl(bool closeGripper, int errorTimer) {
           pos = 90; // Attempt to grip again
           myservo.write(pos);
           errorTimer = millis(); // Reset error timer for the new grip attempt
-          return false; // Indicate that the desired state has not been reached yet
-        } else {
-          return true;
-        }
+          //return false; // Indicate that the desired state has not been reached yet
+        } 
+        return true;
+        // else {
+        //   return true;
+        // }
       }
       break;
     case false:
@@ -187,4 +189,8 @@ bool servoControl(bool closeGripper, int errorTimer) {
 
 
   delay(100);
+}
+
+bool ErrorDetected() {
+  return errorDetected;
 }
