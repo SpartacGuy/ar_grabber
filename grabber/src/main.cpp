@@ -5,6 +5,7 @@
 static const uint8_t UR5_IN_PIN  = 2;   // input from UR5
 static const uint8_t UR5_OUT_PIN = 3;   // output to UR5/relay input
 static const uint8_t ERROR_PIN = 6;   // output to UR5/relay input
+static const uint8_t ERR_ACKNOWLEDGE = 19;
 
 static const uint16_t PULSE_MS = 100;
 
@@ -12,6 +13,9 @@ static const uint16_t PULSE_MS = 100;
 enum class PulseState : uint8_t { Idle, High };
 static PulseState pulseState = PulseState::Idle;
 static uint32_t pulseStartMs = 0;
+
+bool errDetected = false;
+int errorTimer = 0;
 
 static void requestPositivePulseOnce()
 {
@@ -68,31 +72,47 @@ void loop()
   servicePulse();
 
   bool inState = digitalRead(UR5_IN_PIN);
-  int errorTimer = millis(); // Timer to track time since last grip/ungrip event
+  
+  errDetected = inState ? ErrorDetected() : false; // Check for errors only when gripper is closed, reset on open
+  digitalWrite(ERROR_PIN, errDetected ? HIGH : LOW); // Set error pin based on detected error state
+
+  // print if error was detected
+   if (errDetected) {
+     Serial.println("Error detected");
+   }
+  
+  //bool errorAcknowledged = digitalRead(ERR_ACKNOWLEDGE);
+  // Serial.println(errorAcknowledged);
+  
 
   // React only on edges
   if (inState != lastInState)
   {
+    Serial.print("State: "); Serial.println(inState ? "HIGH" : "LOW");
+    // if (errDetected) {
+    //   if (errorAcknowledged) {
+    //     Serial.println("Error acknowledged by UR5.");
+    //   }
+    // }
+    
     digitalWrite(ERROR_PIN, LOW); // Clear error on any state change
+
     if (inState)
     {
       // Rising edge: LED ON (called once per rising edge)
       digitalWrite(LED_BUILTIN, HIGH);
 
       closeGripper = true; 
-      Serial.print(closeGripper);
+   
+      errorTimer = millis(); // Start error timer on grip attempt
       while (!servoControl(closeGripper, errorTimer)) { // Wait until the servo control indicates the gripper has reached the desired state delay(10); // Small delay to prevent busy-waiting }
         Serial.print("Gripper "); Serial.println(closeGripper ? "Closing" : "Opening"); 
       }
 
-      Serial.print("Gripper state:"); Serial.println(closeGripper ? "Closed" : "Open");
       
-      if (!ErrorDetected()) {
-        digitalWrite(ERROR_PIN, LOW);
-        gripperClosed = closeGripper;
-      } else {
-        digitalWrite(ERROR_PIN, HIGH);
-      }
+      Serial.println("Gripper state: Closed"); 
+      
+      gripperClosed = true; // Update gripper state only if no error detected
       
 
       // Send positive pulse once
@@ -104,7 +124,9 @@ void loop()
       digitalWrite(LED_BUILTIN, LOW);
       if (gripperClosed) {
         closeGripper = false;
+        errorTimer = millis(); // Reset error timer on ungrip attempt
         gripperClosed = servoControl(closeGripper, errorTimer);
+        Serial.println("Gripper state: Open");
       }
       // Send positive pulse once
       requestPositivePulseOnce();
@@ -112,6 +134,9 @@ void loop()
 
     lastInState = inState;
   }
+
+  
+  
 
 }
 
