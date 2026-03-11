@@ -81,11 +81,10 @@ void loop()
      Serial.println("Error detected");
    }
   
-  //bool errorAcknowledged = digitalRead(ERR_ACKNOWLEDGE);
-  // Serial.println(errorAcknowledged);
+  Serial.println(digitalRead(ERR_ACKNOWLEDGE));
   
 
-  // React only on edges
+  // React only on edges  
   if (inState != lastInState)
   {
     Serial.print("State: "); Serial.println(inState ? "HIGH" : "LOW");
@@ -94,7 +93,7 @@ void loop()
     //     Serial.println("Error acknowledged by UR5.");
     //   }
     // }
-    
+
     digitalWrite(ERROR_PIN, LOW); // Clear error on any state change
 
     if (inState)
