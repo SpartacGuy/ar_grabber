@@ -16,7 +16,7 @@ static uint32_t pulseStartMs = 0;
 
 bool errDetected = false;
 int errorTimer = 0;
-
+bool lastErrDetected = false;
 static void requestPositivePulseOnce()
 {
   // If a pulse is already active, ignore new requests (prevents double-firing).
@@ -77,11 +77,12 @@ void loop()
   digitalWrite(ERROR_PIN, errDetected ? HIGH : LOW); // Set error pin based on detected error state
 
   // print if error was detected
-   if (errDetected) {
-     Serial.println("Error detected");
-   }
+   if (errDetected && !lastErrDetected) {
+  Serial.println("Error detected");
+  }
+  lastErrDetected = errDetected;
   
-  Serial.println(digitalRead(ERR_ACKNOWLEDGE));
+  // Serial.println(digitalRead(ERR_ACKNOWLEDGE));
   
 
   // React only on edges  
@@ -109,7 +110,7 @@ void loop()
       }
 
       
-      Serial.println("Gripper state: Closed"); 
+      Serial.println("Gripper state: Closed");
       
       gripperClosed = true; // Update gripper state only if no error detected
       

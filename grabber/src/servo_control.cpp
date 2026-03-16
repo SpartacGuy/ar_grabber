@@ -145,6 +145,8 @@ bool servoControl(bool closeGripper, int errorTimer) {
 
 void checkPressure(){
   int pres = analogRead(PressurePin);
+  Serial.print("Pressure: ");
+  Serial.println(pres);
   int mappedPres = map(pres, 0, 1023, 0, 255);
     if (mappedPres <= baselinePressure - 10) {
       errorDetected = true; // Set error when a significant drop in pressure is detected while gripped
