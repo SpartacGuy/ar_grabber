@@ -73,7 +73,7 @@ void loop()
 
   bool inState = digitalRead(UR5_IN_PIN);
   
-  errDetected = inState ? ErrorDetected() : false; // Check for errors only when gripper is closed, reset on open
+  errDetected = (inState && gripperClosed) ? ErrorDetected() : false; // Check for errors only when gripper is closed, reset on open
   digitalWrite(ERROR_PIN, errDetected ? HIGH : LOW); // Set error pin based on detected error state
 
   // print if error was detected
@@ -96,6 +96,7 @@ void loop()
     // }
 
     digitalWrite(ERROR_PIN, LOW); // Clear error on any state change
+    errDetected = false; // Clear error state on any state change
 
     if (inState)
     {
@@ -112,6 +113,7 @@ void loop()
       
       Serial.println("Gripper state: Closed");
       
+      delay(100); // Small delay to ensure state is stable before checking for errors
       gripperClosed = true; // Update gripper state only if no error detected
       
 
