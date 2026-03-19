@@ -77,8 +77,8 @@ void loop()
   digitalWrite(ERROR_PIN, errDetected ? HIGH : LOW); // Set error pin based on detected error state
 
   // print if error was detected
-   if (errDetected && !lastErrDetected) {
-  Serial.println("Error detected");
+  if (errDetected && !lastErrDetected) {
+    Serial.println("Error detected");
   }
   lastErrDetected = errDetected;
   
@@ -113,7 +113,7 @@ void loop()
       
       Serial.println("Gripper state: Closed");
       
-      delay(100); // Small delay to ensure state is stable before checking for errors
+      
       gripperClosed = true; // Update gripper state only if no error detected
       
 

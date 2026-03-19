@@ -6,7 +6,7 @@
 Servo myservo;  // create Servo object to control a servo
 // twelve Servo objects can be created on most boards
 
-const int PRESSURE_THRESHOLD = 20; 
+const int PRESSURE_THRESHOLD = 1; 
 
 int pos = 0;    // variable to store the servo position
 int oldPressure = 0;
@@ -30,7 +30,7 @@ void pressureControl();
 
 void initializeServo() {
   Serial.begin(9600);
-  myservo.attach(22);  // attaches the servo on pin 29 to the Servo object
+  myservo.attach(12);  // attaches the servo on pin 29 to the Servo object
   pinMode(PressurePin, INPUT);
 }
 
@@ -102,7 +102,7 @@ bool servoControl(bool closeGripper, int errorTimer) {
 
   if (closeGripper) { 
       if (!gripped /* && pos <= 120 */) { // Stop the servo if it takes long to close
-        if (millis() - errorTimer > 1200) {
+        if (millis() - errorTimer > 1800) {
           // pos = 90; 
           // myservo.write(pos);
           errorDetected = true;
@@ -112,7 +112,9 @@ bool servoControl(bool closeGripper, int errorTimer) {
           // pos = 120;
           // myservo.write(pos);
           // delay(15);
-          for (; pos <= 120; pos++) { // CHANGE TO CORRECT CLOSE POSITION
+         // myservo.write(180);
+          for (; pos <= 170; pos++) { // CHANGE TO CORRECT CLOSE POSITION
+            Serial.println(pos);
             myservo.write(pos);
             delay(15);
           }
@@ -120,8 +122,8 @@ bool servoControl(bool closeGripper, int errorTimer) {
         // pos++;
       } else if (gripped /*&& pos >= 0 */) {
         // pos = 90;
-        // myservo.write(pos);
-        // delay(15);
+        myservo.write(pos);
+        delay(15);
        
         return true;
       }
@@ -131,8 +133,8 @@ bool servoControl(bool closeGripper, int errorTimer) {
       // myservo.write(pos);
       // delay(/*(closingTime > 0 && closingTime <= 1000) ? closingTime :*/ 1000); 
       // pos = 90;
-      // myservo.write(pos);
-        for (; pos >= 0; pos--) { //CHANGE TO CORRECT OPEN POSITION
+      //  myservo.write(120);
+        for (; pos >= 120; pos--) { //CHANGE TO CORRECT OPEN POSITION
           myservo.write(pos);
           delay(15);
         }
@@ -171,8 +173,8 @@ void checkPressure(){
 
 
 bool ErrorDetected() {
-  // if (gripped) {
-  //   checkPressure();
-  // }
+  if (gripped) {
+    checkPressure();
+  }
   return errorDetected;
 }
