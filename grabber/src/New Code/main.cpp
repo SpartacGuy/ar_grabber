@@ -11,10 +11,10 @@ Servo myservo;  // create Servo object to control a servo
 #include <Arduino.h>
 #include <Servo.h>
 
-#define PressurePin A0
+#define PressurePin 28
 #define ServoPin 12
-#define LimitPin 29
-#define ErrorPin 15
+//#define LimitPin 29
+#define ErrorPin 6
 #define RelayPin 3
 #define OptocouplerPin 2
 
