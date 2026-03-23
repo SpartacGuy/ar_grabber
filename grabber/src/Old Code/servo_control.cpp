@@ -1,0 +1,180 @@
+#include <Arduino.h>
+#include <Servo.h>
+
+#define PressurePin 28
+
+Servo myservo;  // create Servo object to control a servo
+// twelve Servo objects can be created on most boards
+
+const int PRESSURE_THRESHOLD = 1; 
+
+int pos = 0;    // variable to store the servo position
+int oldPressure = 0;
+int pressure = 0;  
+int currentPressure = 0;
+int baselinePressure = 0; // Baseline pressure when an object is gripped
+int baselinePressureRaw = 0; // Baseline pressure when an object is gripped
+int lastDebounceTime = 0;
+//int errorTimer = 0;
+
+int mappedPressure = 0;
+
+bool gripped = false;
+bool ungripped = false;
+bool errorDetected = false;
+
+int errorTime = 0;
+
+
+void pressureControl();
+
+void initializeServo() {
+  Serial.begin(9600);
+  myservo.attach(12);  // attaches the servo on pin 29 to the Servo object
+  pinMode(PressurePin, INPUT);
+}
+
+bool servoControl(bool closeGripper, int errorTimer) {
+
+  
+
+  // // static int errorTimer = millis(); // Timer to track time since last grip/ungrip event
+  static int closingTime = 0;
+  // errorTimer = errorDetected ? millis() : errorTimer; 
+
+
+  errorTimer = errorDetected ? millis() : errorTimer; 
+
+  int unmappedPressure = analogRead(PressurePin);
+  mappedPressure = map(unmappedPressure, 0, 1023, 0, 255);
+  int pressureDiff = mappedPressure - oldPressure;
+  currentPressure = pressureDiff;
+  currentPressure = (pressureDiff > 1 || pressureDiff < -1) ? pressureDiff : pressure;
+  
+  
+  //Serial.println(currentPressure);
+
+  
+  if (millis() - lastDebounceTime >= 10) {
+    //Serial.print(currentPressure);
+    if (closeGripper && currentPressure >= pressure + PRESSURE_THRESHOLD /* && currentPressure < 100 */) {
+      Serial.print("Object Gripped. Pressure Value: ");
+      Serial.println(currentPressure);
+
+      pressure = currentPressure;
+      baselinePressure = mappedPressure; // Set baseline pressure when an object is gripped
+      baselinePressureRaw = unmappedPressure; // Set baseline pressure when an object is gripped
+    
+      gripped = true;
+      ungripped = false;
+      
+      closingTime = millis() - errorTimer;
+      Serial.print("Closing Time: ");
+      Serial.println(closingTime);
+      // if (closingTime > 800) { 
+      //   //Serial.println("Error: Object may be slipping or not fully gripped.");
+      //   errorDetected = true;
+      // } else {
+        errorDetected = false;
+      // }
+
+      errorDetected = false; // Clear error state on successful grip
+
+      //oldPressure = mappedPressure;
+    } else if (currentPressure <= pressure - PRESSURE_THRESHOLD && pressure > 1) {
+      Serial.print("Object Ungripped. Pressure Value: ");
+      Serial.println(currentPressure);
+
+      pressure = currentPressure > 0 ? currentPressure : 0;
+
+      
+
+      gripped = false;
+      ungripped = true;
+      //delay(100);
+      //oldPressure = mappedPressure;
+    }
+    lastDebounceTime = millis(); 
+    oldPressure = mappedPressure;
+  } 
+
+
+
+  if (closeGripper) { 
+      if (!gripped /* && pos <= 120 */) { // Stop the servo if it takes long to close
+        if (millis() - errorTimer > 1800) {
+          // pos = 90; 
+          // myservo.write(pos);
+          errorDetected = true;
+          return true;
+          //gripped = true;
+        } else {
+          // pos = 120;
+          // myservo.write(pos);
+          // delay(15);
+         // myservo.write(180);
+          for (; pos <= 170; pos++) { // CHANGE TO CORRECT CLOSE POSITION
+            Serial.println(pos);
+            myservo.write(pos);
+            delay(15);
+          }
+        }
+        // pos++;
+      } else if (gripped /*&& pos >= 0 */) {
+        // pos = 90;
+        myservo.write(pos);
+        delay(15);
+       
+        return true;
+      }
+      
+    } else {
+      // pos = 60;
+      // myservo.write(pos);
+      // delay(/*(closingTime > 0 && closingTime <= 1000) ? closingTime :*/ 1000); 
+      // pos = 90;
+      //  myservo.write(120);
+        for (; pos >= 120; pos--) { //CHANGE TO CORRECT OPEN POSITION
+          myservo.write(pos);
+          delay(15);
+        }
+      errorDetected = false; // Clear error state on ungrip
+      return false;
+  } 
+
+
+    return false;
+
+  delay(100);
+}
+
+void checkPressure(){
+
+  int sum = 0;
+
+  for(int i=0;i<4;i++){
+    analogRead(PressurePin);
+    delay(10); // Small delay between readings to allow sensor to stabilize
+    sum += analogRead(PressurePin);
+  }
+
+  int pres = sum / 4;
+  int mappedPres = map(pres, 0, 1023, 0, 255);  
+
+    if (pres < baselinePressureRaw * 0.5) {
+      Serial.print("Raw Pressure: "); Serial.println(pres); 
+      Serial.print(" Mapped Pressure: "); Serial.println(mappedPres);
+      Serial.print("baselinePressureRaw: "); Serial.println(baselinePressureRaw);
+      errorDetected = true; // Set error when a significant drop in pressure is detected while gripped
+      gripped = false; // Update grip state to reflect potential slip or drop
+      Serial.println("Error: Object may have slipped or been dropped.");
+    } 
+}
+
+
+bool ErrorDetected() {
+  if (gripped) {
+    checkPressure();
+  }
+  return errorDetected;
+}
