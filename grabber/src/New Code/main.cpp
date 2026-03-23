@@ -15,31 +15,30 @@ Servo myservo;  // create Servo object to control a servo
 #define ServoPin 12
 #define LimitPin 29
 #define ErrorPin 15
-#define CloseRelayPin 10
-#define OpenRelayPin 11
-#define OptocouplerPin 14
+#define RelayPin 3
+#define OptocouplerPin 2
 
 Servo myservo;
 const int PRESSURE_THRESHOLD = 400;
 const int PRESSURE_TOLERANCE = 50;
 int lastPressureReading = 0;
 bool gripperClosed = false;
+int servoPosition = 0;
+
 
 void setup() {
     Serial.begin(115200);
     pinMode(PressurePin, INPUT);
     pinMode(LimitPin, INPUT_PULLUP);
     pinMode(ErrorPin, OUTPUT);
-    pinMode(CloseRelayPin, OUTPUT);
-    pinMode(OpenRelayPin, OUTPUT);
+    pinMode(RelayPin, OUTPUT);
     pinMode(OptocouplerPin, INPUT);
     
     myservo.attach(ServoPin);
     myservo.write(0);
     
     digitalWrite(ErrorPin, LOW);
-    digitalWrite(CloseRelayPin, LOW);
-    digitalWrite(OpenRelayPin, LOW);
+    digitalWrite(RelayPin, LOW);
 }
 
 void sendError() {
@@ -53,37 +52,47 @@ void closeGripper() {
     // Close the gripper until pressure is detected or limit is reached
     Serial.println("Closing gripper...");
     //digitalWrite(CloseRelayPin, HIGH);
-    
     while (digitalRead(OptocouplerPin) == HIGH) {
         int pressure = analogRead(PressurePin);
         
-        // Check limit sensor first
-        if (analogRead(LimitPin) > PRESSURE_THRESHOLD) {
-            digitalWrite(CloseRelayPin, HIGH);
-            Serial.println("ERROR: Limit sensor triggered before pressure detected!");
-            sendError();
-            digitalWrite(CloseRelayPin, LOW);
-            return;
-        }
+        // // Check limit sensor first
+        // if (analogRead(LimitPin) > PRESSURE_THRESHOLD) {
+        //     digitalWrite(CloseRelayPin, HIGH);
+        //     Serial.println("ERROR: Limit sensor triggered before pressure detected!");
+        //     sendError();
+        //     digitalWrite(CloseRelayPin, LOW);
+        //     return;
+        // }
         
         // Check pressure sensor
         if (pressure > PRESSURE_THRESHOLD) {
-            digitalWrite(CloseRelayPin, HIGH);
+            digitalWrite(RelayPin, HIGH);
             gripperClosed = true;
             lastPressureReading = pressure;
-            Serial.println("Gripper closed successfully.");
+            if (servoPosition >= 170) {
+                Serial.println("ERROR: Servo limit reached without detecting pressure!");
+                sendError();
+                
+            } else {
+                Serial.println("Gripper closed successfully.");
+            } 
+            digitalWrite(RelayPin, LOW);   
             return;
         }
-        delay(50);
+        servoPosition++;
+        myservo.write(servoPosition);
+
+        delay(15);
     }
 }
 
 void openGripper() {
     // Open the gripper completely
     Serial.println("Opening gripper...");
-    digitalWrite(OpenRelayPin, HIGH);
-    delay(2000);
-    digitalWrite(OpenRelayPin, LOW);
+    servoPosition = 120;
+    digitalWrite(RelayPin, HIGH);
+    delay(1000);
+    digitalWrite(RelayPin, LOW);
     gripperClosed = false;
 }
 
@@ -128,10 +137,6 @@ void loop() {
         }
         delay(500);
     } else {
-        // If no signal, just monitor pressure if gripper is closed
-        digitalWrite(CloseRelayPin, LOW);
-        digitalWrite(OpenRelayPin, LOW);
-
         if (gripperClosed) {
             // Monitor pressure for slippage
             Serial.print("Gripper is closed. Last pressure reading: ");
