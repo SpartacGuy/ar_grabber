@@ -8,8 +8,9 @@
         {
             "name": "PlatformIO",
             "includePath": [
-                "/Users/sandu/Documents/PlatformIO/Projects/grabber/include",
-                "/Users/sandu/Documents/PlatformIO/Projects/grabber/src",
+                "/Users/sandu/ar_grabber/grabber/include",
+                "/Users/sandu/ar_grabber/grabber/src",
+                "/Users/sandu/ar_grabber/grabber/.pio/libdeps/pico/Servo/src",
                 "/Users/sandu/.platformio/packages/framework-arduino-mbed/cores/arduino",
                 "/Users/sandu/.platformio/packages/framework-arduino-mbed/cores/arduino/api/deprecated",
                 "/Users/sandu/.platformio/packages/framework-arduino-mbed/cores/arduino/api/deprecated-avr-comp",
@@ -61,8 +62,9 @@
             "browse": {
                 "limitSymbolsToIncludedHeaders": true,
                 "path": [
-                    "/Users/sandu/Documents/PlatformIO/Projects/grabber/include",
-                    "/Users/sandu/Documents/PlatformIO/Projects/grabber/src",
+                    "/Users/sandu/ar_grabber/grabber/include",
+                    "/Users/sandu/ar_grabber/grabber/src",
+                    "/Users/sandu/ar_grabber/grabber/.pio/libdeps/pico/Servo/src",
                     "/Users/sandu/.platformio/packages/framework-arduino-mbed/cores/arduino",
                     "/Users/sandu/.platformio/packages/framework-arduino-mbed/cores/arduino/api/deprecated",
                     "/Users/sandu/.platformio/packages/framework-arduino-mbed/cores/arduino/api/deprecated-avr-comp",
