@@ -5,9 +5,9 @@
 #define PRESSURE_PIN 28
 
 static const uint8_t UR5_IN_PIN  = 2;   // command from UR5
-static const uint8_t UR5_OUT_PIN = 3;   // 50 ms pulse back to UR5
-
-static const uint16_t PULSE_MS = 50;
+static const uint8_t UR5_OUT_PIN = 3;   // 50 ms success pulse back to UR5
+static const uint8_t ERROR_PIN   = 6;   // 50 ms error pulse back to UR5
+static const uint16_t PULSE_MS   = 50;
 
 Servo myservo;
 
@@ -25,21 +25,28 @@ enum class PulseState : uint8_t {
 };
 
 State state = OPEN;
-PulseState pulseState = PulseState::Idle;
+
+PulseState successPulseState = PulseState::Idle;
+PulseState errorPulseState   = PulseState::Idle;
 
 const int OPEN_POS = 30;
 const int CLOSED_POS = 110;
 const int STEP_TIME = 15;
-const int CLOSE_TIMEOUT = 1800;
+const int CLOSE_TIMEOUT = 3000;
 const int CONTACT_DELTA = 20;
 
 int pos = OPEN_POS;
 int baselinePressure = 0;
 bool errorDetected = false;
 
+// This stops immediate re-closing after an error.
+// UR5 must release command LOW once before close is allowed again.
+bool waitForReleaseAfterError = false;
+
 unsigned long lastStepTime = 0;
 unsigned long closeStartTime = 0;
-unsigned long pulseStartMs = 0;
+unsigned long successPulseStartMs = 0;
+unsigned long errorPulseStartMs = 0;
 
 void setState(State newState) {
   if (state != newState) {
@@ -65,19 +72,40 @@ void setState(State newState) {
   }
 }
 
-void requestPositivePulseOnce() {
-  if (pulseState != PulseState::Idle) return;
+void requestSuccessPulseOnce() {
+  if (successPulseState != PulseState::Idle) return;
 
   digitalWrite(UR5_OUT_PIN, HIGH);
-  pulseStartMs = millis();
-  pulseState = PulseState::High;
+  successPulseStartMs = millis();
+  successPulseState = PulseState::High;
+  Serial.println("Success pulse -> HIGH");
 }
 
-void servicePulse() {
-  if (pulseState == PulseState::High) {
-    if ((unsigned long)(millis() - pulseStartMs) >= PULSE_MS) {
+void requestErrorPulseOnce() {
+  if (errorPulseState != PulseState::Idle) return;
+
+  digitalWrite(ERROR_PIN, HIGH);
+  errorPulseStartMs = millis();
+  errorPulseState = PulseState::High;
+  Serial.println("Error pulse -> HIGH");
+}
+
+void servicePulses() {
+  unsigned long now = millis();
+
+  if (successPulseState == PulseState::High) {
+    if ((unsigned long)(now - successPulseStartMs) >= PULSE_MS) {
       digitalWrite(UR5_OUT_PIN, LOW);
-      pulseState = PulseState::Idle;
+      successPulseState = PulseState::Idle;
+      Serial.println("Success pulse -> LOW");
+    }
+  }
+
+  if (errorPulseState == PulseState::High) {
+    if ((unsigned long)(now - errorPulseStartMs) >= PULSE_MS) {
+      digitalWrite(ERROR_PIN, LOW);
+      errorPulseState = PulseState::Idle;
+      Serial.println("Error pulse -> LOW");
     }
   }
 }
@@ -88,9 +116,11 @@ void initializeServo() {
   pinMode(PRESSURE_PIN, INPUT);
   pinMode(UR5_IN_PIN, INPUT_PULLDOWN);
   pinMode(UR5_OUT_PIN, OUTPUT);
+  pinMode(ERROR_PIN, OUTPUT);
   pinMode(LED_BUILTIN, OUTPUT);
 
   digitalWrite(UR5_OUT_PIN, LOW);
+  digitalWrite(ERROR_PIN, LOW);
 
   myservo.attach(SERVO_PIN);
   myservo.write(OPEN_POS);
@@ -98,6 +128,7 @@ void initializeServo() {
   pos = OPEN_POS;
   baselinePressure = analogRead(PRESSURE_PIN);
   errorDetected = false;
+  waitForReleaseAfterError = false;
 
   setState(OPEN);
 }
@@ -112,6 +143,15 @@ bool servoControl(bool closeGripper, int errorTimer) {
     case OPEN:
       errorDetected = false;
       baselinePressure = pressure;
+
+      // After an error, ignore HIGH until UR5 releases LOW once
+      if (waitForReleaseAfterError) {
+        if (!closeGripper) {
+          waitForReleaseAfterError = false;
+          Serial.println("Error latch cleared -> UR5 released LOW");
+        }
+        return false;
+      }
 
       if (closeGripper) {
         closeStartTime = now;
@@ -132,12 +172,14 @@ bool servoControl(bool closeGripper, int errorTimer) {
       if (pressure > baselinePressure + CONTACT_DELTA) {
         errorDetected = false;
         setState(CLOSED);
-        requestPositivePulseOnce();
+        requestSuccessPulseOnce();
         return true;
       }
 
       if (pos >= CLOSED_POS || now - closeStartTime >= CLOSE_TIMEOUT) {
         errorDetected = true;
+        waitForReleaseAfterError = true;
+        requestErrorPulseOnce();
         setState(ERROR_STATE);
         return true;
       }
@@ -164,25 +206,27 @@ bool servoControl(bool closeGripper, int errorTimer) {
         pos = OPEN_POS;
         myservo.write(pos);
         baselinePressure = analogRead(PRESSURE_PIN);
-        errorDetected = false;
-        setState(OPEN);
-        requestPositivePulseOnce();
+
+        if (errorDetected) {
+          // finished recovery from error, now idle/open
+          setState(OPEN);
+        } else {
+          setState(OPEN);
+          requestSuccessPulseOnce();
+        }
       }
 
       return false;
 
     case ERROR_STATE:
-      if (!closeGripper) {
-        setState(OPENING);
-      }
-      return true;
+      // Immediately recover by opening once, but keep the latch active
+      requestSuccessPulseOnce();
+      setState(OPENING);
+      
+      return false;
   }
 
   return false;
-}
-
-bool ErrorDetected() {
-  return errorDetected;
 }
 
 void setup() {
@@ -190,7 +234,7 @@ void setup() {
 }
 
 void loop() {
-  servicePulse();
+  servicePulses();
 
   bool ur5State = digitalRead(UR5_IN_PIN);
 
